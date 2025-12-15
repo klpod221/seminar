@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laravel Database Design - Seminar by klpod221</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+  </head>
+  <body>
+    <div class="presentation">
+      <!-- Progress Bar -->
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <!-- Slide 1: Title -->
+      <section class="slide active" data-slide="1">
+        <div class="slide-content title-slide">
+          <div class="badge">SEMINAR</div>
+          <h1>
+            Thiết Kế Cơ Sở Dữ Liệu<br /><span class="gradient-text"
+              >Nâng Cao Trong Laravel</span
+            >
+          </h1>
+          <p class="subtitle">
+            Hướng dẫn toàn diện về thiết kế và triển khai database
+          </p>
+          <div class="presenter">
+            <img
+              class="avatar"
+              src="https://github.com/klpod221.png"
+              alt="klpod221"
+            />
+            <div>
+              <strong>klpod221</strong>
+              <span>Full Stack Developer</span>
+            </div>
+          </div>
+          <div class="start-hint">
+            <span>Nhấn <kbd>→</kbd> hoặc <kbd>Space</kbd> để bắt đầu</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 2: Table of Contents -->
+      <section class="slide" data-slide="2">
+        <div class="slide-content">
+          <h2>📋 Nội Dung Trình Bày</h2>
+          <div class="toc-grid">
+            <button class="toc-item" onclick="goToSlide(3)">
+              <span class="toc-number">01</span>
+              <span class="toc-title">ACID Properties</span>
+            </button>
+            <button class="toc-item" onclick="goToSlide(8)">
+              <span class="toc-number">02</span>
+              <span class="toc-title">Chuẩn Hóa Dữ Liệu</span>
+            </button>
+            <button class="toc-item" onclick="goToSlide(12)">
+              <span class="toc-number">03</span>
+              <span class="toc-title">Migration Nâng Cao</span>
+            </button>
+            <button class="toc-item" onclick="goToSlide(15)">
+              <span class="toc-number">04</span>
+              <span class="toc-title">Eloquent Relationships</span>
+            </button>
+            <button class="toc-item" onclick="goToSlide(22)">
+              <span class="toc-number">05</span>
+              <span class="toc-title">Query Optimization</span>
+            </button>
+            <button class="toc-item" onclick="goToSlide(30)">
+              <span class="toc-number">06</span>
+              <span class="toc-title">Best Practices</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 3: ACID Introduction -->
+      <section class="slide" data-slide="3">
+        <div class="slide-content">
+          <div class="section-badge">Phần 1</div>
+          <h2>🔐 ACID Properties</h2>
+          <p class="slide-description">
+            Bốn thuộc tính quan trọng đảm bảo tính toàn vẹn của dữ liệu
+          </p>
+          <div class="cards-grid">
+            <div class="card card-blue">
+              <div class="card-icon">⚛️</div>
+              <h3>Atomicity</h3>
+              <p>Tính nguyên tử - Tất cả hoặc không gì cả</p>
+            </div>
+            <div class="card card-green">
+              <div class="card-icon">✓</div>
+              <h3>Consistency</h3>
+              <p>Tính nhất quán - Dữ liệu luôn hợp lệ</p>
+            </div>
+            <div class="card card-purple">
+              <div class="card-icon">🔒</div>
+              <h3>Isolation</h3>
+              <p>Tính cô lập - Transactions độc lập</p>
+            </div>
+            <div class="card card-orange">
+              <div class="card-icon">💾</div>
+              <h3>Durability</h3>
+              <p>Tính bền vững - Lưu trữ vĩnh viễn</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4: Atomicity Example -->
+      <section class="slide" data-slide="4">
+        <div class="slide-content">
+          <h2>⚛️ Atomicity - Ví Dụ Chuyển Tiền</h2>
+          <div class="two-columns">
+            <div class="column">
+              <div class="scenario-box">
+                <h4>📋 Kịch bản</h4>
+                <p>Chuyển 1,000,000đ từ tài khoản A → B</p>
+                <ol>
+                  <li>Trừ tiền từ A</li>
+                  <li>Cộng tiền vào B</li>
+                </ol>
+                <div class="alert alert-warning">
+                  ⚠️ Nếu bước 2 thất bại, bước 1 phải rollback!
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <pre><code class="language-php">DB::transaction(function () {
+    $accountA = Account::find(1);
+    $accountB = Account::find(2);
+    
+    $accountA->balance -= 1000000;
+    $accountA->save();
+    
+    $accountB->balance += 1000000;
+    $accountB->save();
+    // Lỗi ở đây → Cả 2 rollback
+});</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 5: Consistency Example -->
+      <section class="slide" data-slide="5">
+        <div class="slide-content">
+          <h2>📐 Consistency - Ràng Buộc Dữ Liệu</h2>
+          <p class="slide-description">
+            Dữ liệu phải luôn ở trạng thái hợp lệ trước và sau mỗi transaction
+          </p>
+          <div class="two-columns">
+            <div class="column">
+              <div class="constraint-list">
+                <div class="constraint-item">
+                  <span class="constraint-name">PRIMARY KEY</span>
+                  <span class="constraint-desc"
+                    >Định danh duy nhất mỗi row</span
+                  >
+                </div>
+                <div class="constraint-item">
+                  <span class="constraint-name">FOREIGN KEY</span>
+                  <span class="constraint-desc"
+                    >Giá trị phải tồn tại trong bảng tham chiếu</span
+                  >
+                </div>
+                <div class="constraint-item">
+                  <span class="constraint-name">UNIQUE</span>
+                  <span class="constraint-desc"
+                    >Không cho phép giá trị trùng lặp</span
+                  >
+                </div>
+                <div class="constraint-item">
+                  <span class="constraint-name">NOT NULL</span>
+                  <span class="constraint-desc"
+                    >Cột bắt buộc phải có giá trị</span
+                  >
+                </div>
+                <div class="constraint-item">
+                  <span class="constraint-name">CHECK</span>
+                  <span class="constraint-desc"
+                    >Giá trị phải thỏa mãn điều kiện</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <pre><code class="language-php">// ❌ Vi phạm Foreign Key
+Order::create(['user_id' => 999]);
+// Error: User không tồn tại!
+
+// ❌ Vi phạm Unique
+User::create(['email' => 'existing@mail.com']);
+// Error: Duplicate entry!
+
+// ✅ Định nghĩa constraints đúng cách
+$table->foreignId('user_id')->constrained();
+$table->string('email')->unique();
+$table->unsignedInteger('quantity'); // >= 0</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 6: Isolation Example -->
+      <section class="slide" data-slide="6">
+        <div class="slide-content">
+          <h2>🔐 Isolation - Cách Ly Transaction</h2>
+          <p class="slide-description">
+            Đảm bảo các transaction đồng thời không ảnh hưởng lẫn nhau
+          </p>
+          <div class="two-columns">
+            <div class="column">
+              <h4>⚠️ Các vấn đề có thể xảy ra</h4>
+              <div class="isolation-problems">
+                <div class="iso-problem">
+                  <span class="problem-name">Dirty Read</span>
+                  <span class="problem-desc"
+                    >Đọc data chưa commit (có thể bị rollback)</span
+                  >
+                </div>
+                <div class="iso-problem">
+                  <span class="problem-name">Non-repeatable Read</span>
+                  <span class="problem-desc"
+                    >Đọc 2 lần cùng row, kết quả khác nhau</span
+                  >
+                </div>
+                <div class="iso-problem">
+                  <span class="problem-name">Phantom Read</span>
+                  <span class="problem-desc"
+                    >Query 2 lần, số lượng rows khác nhau</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <h4>📊 Isolation Levels</h4>
+              <div class="isolation-levels">
+                <div class="iso-item">
+                  <span class="iso-level">READ UNCOMMITTED</span>
+                  <span class="iso-risk high">Dirty ✗</span>
+                </div>
+                <div class="iso-item">
+                  <span class="iso-level">READ COMMITTED</span>
+                  <span class="iso-risk medium">Non-repeat ✗</span>
+                </div>
+                <div class="iso-item">
+                  <span class="iso-level">REPEATABLE READ</span>
+                  <span class="iso-risk low">Phantom ✗</span>
+                </div>
+                <div class="iso-item">
+                  <span class="iso-level">SERIALIZABLE</span>
+                  <span class="iso-risk safe">An toàn ✓</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 7: Durability Example -->
+      <section class="slide" data-slide="7">
+        <div class="slide-content">
+          <h2>💾 Durability - Bền Vững Dữ Liệu</h2>
+          <p class="slide-description">
+            Sau khi COMMIT, dữ liệu được đảm bảo lưu trữ vĩnh viễn dù có sự cố
+          </p>
+          <div class="two-columns">
+            <div class="column">
+              <h4>🛡️ Các kỹ thuật đảm bảo</h4>
+              <div class="durability-techniques">
+                <div class="dur-tech">
+                  <span class="tech-name">WAL (Write-Ahead Log)</span>
+                  <span class="tech-desc">Ghi log trước khi ghi data thực</span>
+                </div>
+                <div class="dur-tech">
+                  <span class="tech-name">Checkpoints</span>
+                  <span class="tech-desc">Định kỳ đồng bộ buffer → disk</span>
+                </div>
+                <div class="dur-tech">
+                  <span class="tech-name">Crash Recovery</span>
+                  <span class="tech-desc">Phục hồi từ log sau khi restart</span>
+                </div>
+                <div class="dur-tech">
+                  <span class="tech-name">Replication</span>
+                  <span class="tech-desc">Sao chép data sang server khác</span>
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <h4>📊 Quy trình ghi dữ liệu</h4>
+              <div class="durability-flow">
+                <div class="dur-step">
+                  <span class="dur-icon">📝</span>
+                  <div class="dur-info">
+                    <span class="dur-title">Write to WAL</span>
+                    <span class="dur-detail">Ghi vào transaction log</span>
+                  </div>
+                </div>
+                <div class="dur-arrow">↓</div>
+                <div class="dur-step">
+                  <span class="dur-icon">💿</span>
+                  <div class="dur-info">
+                    <span class="dur-title">Buffer Pool</span>
+                    <span class="dur-detail">Lưu tạm trong memory</span>
+                  </div>
+                </div>
+                <div class="dur-arrow">↓</div>
+                <div class="dur-step success">
+                  <span class="dur-icon">✅</span>
+                  <div class="dur-info">
+                    <span class="dur-title">COMMIT</span>
+                    <span class="dur-detail">WAL được flush → An toàn!</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 8: Normalization Intro -->
+      <section class="slide" data-slide="8">
+        <div class="slide-content">
+          <div class="section-badge">Phần 2</div>
+          <h2>🔄 Chuẩn Hóa Dữ Liệu</h2>
+          <p class="slide-description">
+            Quá trình tổ chức dữ liệu để giảm dư thừa và tránh anomalies
+          </p>
+          <div class="normalization-flow">
+            <div class="norm-step">
+              <div class="norm-level">UNF</div>
+              <span>Unnormalized</span>
+            </div>
+            <div class="norm-arrow">→</div>
+            <div class="norm-step active">
+              <div class="norm-level">1NF</div>
+              <span>Atomic Values</span>
+            </div>
+            <div class="norm-arrow">→</div>
+            <div class="norm-step">
+              <div class="norm-level">2NF</div>
+              <span>No Partial Dep.</span>
+            </div>
+            <div class="norm-arrow">→</div>
+            <div class="norm-step">
+              <div class="norm-level">3NF</div>
+              <span>No Transitive Dep.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 9: 1NF -->
+      <section class="slide" data-slide="9">
+        <div class="slide-content">
+          <h2>1️⃣ First Normal Form (1NF)</h2>
+          <div class="rule-box">
+            <h4>Quy tắc:</h4>
+            <ul>
+              <li>
+                Mỗi cột chứa giá trị <strong>atomic</strong> (không thể chia
+                nhỏ)
+              </li>
+              <li>Không có <strong>nhóm lặp lại</strong></li>
+              <li>Mỗi row phải <strong>duy nhất</strong> (có primary key)</li>
+            </ul>
+          </div>
+          <div class="comparison">
+            <div class="bad-example">
+              <h4>❌ Vi phạm 1NF</h4>
+              <table class="mini-table">
+                <tr>
+                  <th>user_id</th>
+                  <th>phones</th>
+                </tr>
+                <tr>
+                  <td>1</td>
+                  <td>0123, 0456, 0789</td>
+                </tr>
+              </table>
+              <p>→ Nhiều giá trị trong 1 cột!</p>
+            </div>
+            <div class="good-example">
+              <h4>✅ Tuân thủ 1NF</h4>
+              <table class="mini-table">
+                <tr>
+                  <th>phone_id</th>
+                  <th>user_id</th>
+                  <th>number</th>
+                </tr>
+                <tr>
+                  <td>1</td>
+                  <td>1</td>
+                  <td>0123</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>1</td>
+                  <td>0456</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 10: 2NF -->
+      <section class="slide" data-slide="10">
+        <div class="slide-content">
+          <h2>2️⃣ Second Normal Form (2NF)</h2>
+          <p class="slide-description">
+            Áp dụng khi bảng có <strong>Composite Primary Key</strong> (khóa
+            chính gồm nhiều cột)
+          </p>
+
+          <div class="comparison">
+            <div class="bad-example">
+              <h4>❌ Vi phạm 2NF</h4>
+              <table class="mini-table">
+                <tr>
+                  <th>order_id</th>
+                  <th>product_id</th>
+                  <th>quantity</th>
+                  <th>product_name</th>
+                </tr>
+                <tr>
+                  <td>1</td>
+                  <td>101</td>
+                  <td>2</td>
+                  <td>iPhone 15</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>101</td>
+                  <td>1</td>
+                  <td>iPhone 15</td>
+                </tr>
+              </table>
+              <p>
+                → <code>product_name</code> lặp lại vì chỉ phụ thuộc
+                <code>product_id</code>
+              </p>
+            </div>
+            <div class="good-example">
+              <h4>✅ Tuân thủ 2NF</h4>
+              <div class="two-tables">
+                <table class="mini-table">
+                  <tr>
+                    <th colspan="3">order_items</th>
+                  </tr>
+                  <tr>
+                    <td>order_id</td>
+                    <td>product_id</td>
+                    <td>quantity</td>
+                  </tr>
+                </table>
+                <span class="table-plus">+</span>
+                <table class="mini-table">
+                  <tr>
+                    <th colspan="2">products</th>
+                  </tr>
+                  <tr>
+                    <td>product_id</td>
+                    <td>product_name</td>
+                  </tr>
+                </table>
+              </div>
+              <p>→ Tách <code>product_name</code> ra bảng riêng!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 11: 3NF -->
+      <section class="slide" data-slide="11">
+        <div class="slide-content">
+          <h2>3️⃣ Third Normal Form (3NF)</h2>
+          <p class="slide-description">
+            Loại bỏ <strong>phụ thuộc bắc cầu</strong>: Cột A → Cột B → Cột C (C
+            phụ thuộc gián tiếp vào A)
+          </p>
+
+          <div class="comparison">
+            <div class="bad-example">
+              <h4>❌ Vi phạm 3NF</h4>
+              <table class="mini-table">
+                <tr>
+                  <th>emp_id</th>
+                  <th>emp_name</th>
+                  <th>dept_id</th>
+                  <th>dept_name</th>
+                </tr>
+                <tr>
+                  <td>1</td>
+                  <td>Xuân</td>
+                  <td>D01</td>
+                  <td>IT</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>Nam</td>
+                  <td>D01</td>
+                  <td>IT</td>
+                </tr>
+              </table>
+              <p>
+                → <code>dept_name</code> phụ thuộc <code>dept_id</code>, không
+                phải <code>emp_id</code>
+              </p>
+            </div>
+            <div class="good-example">
+              <h4>✅ Tuân thủ 3NF</h4>
+              <div class="two-tables">
+                <table class="mini-table">
+                  <tr>
+                    <th colspan="3">employees</th>
+                  </tr>
+                  <tr>
+                    <td>emp_id</td>
+                    <td>emp_name</td>
+                    <td>dept_id</td>
+                  </tr>
+                </table>
+                <span class="table-plus">+</span>
+                <table class="mini-table">
+                  <tr>
+                    <th colspan="2">departments</th>
+                  </tr>
+                  <tr>
+                    <td>dept_id</td>
+                    <td>dept_name</td>
+                  </tr>
+                </table>
+              </div>
+              <p>
+                → Tách <code>dept_name</code> ra bảng <code>departments</code>!
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 12: Phần 3 Intro -->
+      <section class="slide" data-slide="12">
+        <div class="slide-content">
+          <div class="section-badge">Phần 3</div>
+          <h2>🔧 Database Schema & Migrations</h2>
+          <p class="slide-description">
+            Xây dựng cấu trúc database với Laravel
+          </p>
+          <div class="section-preview">
+            <div class="preview-item">
+              <span class="preview-icon">📝</span>
+              <span>Quy Tắc Đặt Tên</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-icon">🔧</span>
+              <span>Migration Nâng Cao</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-icon">🔗</span>
+              <span>Foreign Key Actions</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 13: Naming Conventions -->
+      <section class="slide" data-slide="13">
+        <div class="slide-content">
+          <h2>📝 Quy Tắc Đặt Tên Trong Laravel</h2>
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Thành phần</th>
+                <th>Quy ước</th>
+                <th>Ví dụ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge-sm blue">Model</span></td>
+                <td>PascalCase, số ít</td>
+                <td><code>User</code>, <code>BlogPost</code></td>
+              </tr>
+              <tr>
+                <td><span class="badge-sm green">Table</span></td>
+                <td>snake_case, số nhiều</td>
+                <td><code>users</code>, <code>blog_posts</code></td>
+              </tr>
+              <tr>
+                <td><span class="badge-sm purple">Foreign Key</span></td>
+                <td>singular_id</td>
+                <td><code>user_id</code>, <code>post_id</code></td>
+              </tr>
+              <tr>
+                <td><span class="badge-sm orange">Pivot Table</span></td>
+                <td>singular_singular (alphabet)</td>
+                <td><code>post_tag</code>, <code>role_user</code></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tip-box">
+            💡 <strong>Tip:</strong> Tuân thủ quy ước giúp Eloquent hoạt động tự
+            động!
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 13: Migration -->
+      <section class="slide" data-slide="13">
+        <div class="slide-content">
+          <h2>🔧 Migration Nâng Cao</h2>
+          <div class="migration-layout">
+            <div class="migration-code">
+              <pre><code class="language-php">Schema::create('products', function (Blueprint $table) {
+    $table->id();
+    $table->string('name', 255);
+    $table->decimal('price', 10, 2);
+    
+    $table->foreignId('category_id')
+        ->constrained()
+        ->cascadeOnUpdate()
+        ->restrictOnDelete();
+    
+    $table->index(['status', 'created_at']);
+    $table->fullText('name');
+    
+    $table->timestamps();
+    $table->softDeletes();
+});</code></pre>
+            </div>
+            <div class="migration-explain">
+              <div class="explain-item">
+                <span class="explain-code">id()</span>
+                <span class="explain-desc"
+                  >Auto-increment primary key (BIGINT)</span
+                >
+              </div>
+              <div class="explain-item">
+                <span class="explain-code">string('name', 255)</span>
+                <span class="explain-desc">VARCHAR với max length</span>
+              </div>
+              <div class="explain-item">
+                <span class="explain-code">decimal('price', 10, 2)</span>
+                <span class="explain-desc">Số thập phân (8 số + 2 số lẻ)</span>
+              </div>
+              <div class="explain-item">
+                <span class="explain-code">foreignId()->constrained()</span>
+                <span class="explain-desc">FK tự động link đến bảng</span>
+              </div>
+              <div class="explain-item">
+                <span class="explain-code">index(['a', 'b'])</span>
+                <span class="explain-desc"
+                  >Composite index cho query nhanh</span
+                >
+              </div>
+              <div class="explain-item">
+                <span class="explain-code">fullText('name')</span>
+                <span class="explain-desc">Full-text search index</span>
+              </div>
+              <div class="explain-item">
+                <span class="explain-code">timestamps()</span>
+                <span class="explain-desc">created_at + updated_at</span>
+              </div>
+              <div class="explain-item">
+                <span class="explain-code">softDeletes()</span>
+                <span class="explain-desc">deleted_at cho soft delete</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 14: Foreign Key Actions -->
+      <section class="slide" data-slide="14">
+        <div class="slide-content">
+          <h2>🔗 Foreign Key Actions</h2>
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Khi Delete</th>
+                <th>Khi Update</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>cascade</code></td>
+                <td>Xóa luôn child records</td>
+                <td>Cập nhật FK</td>
+              </tr>
+              <tr>
+                <td><code>restrict</code></td>
+                <td>Chặn xóa nếu có child</td>
+                <td>Chặn update</td>
+              </tr>
+              <tr>
+                <td><code>setNull</code></td>
+                <td>Set FK = NULL</td>
+                <td>Set FK = NULL</td>
+              </tr>
+            </tbody>
+          </table>
+          <pre><code class="language-php">$table->foreignId('user_id')
+    ->constrained()
+    ->cascadeOnDelete()    // Xóa user → Xóa luôn posts
+    ->cascadeOnUpdate();   // Update user.id → Update posts.user_id</code></pre>
+        </div>
+      </section>
+
+      <!-- Slide 15: Relationships Intro -->
+      <section class="slide" data-slide="15">
+        <div class="slide-content">
+          <div class="section-badge">Phần 4</div>
+          <h2>🔄 Eloquent Relationships</h2>
+          <div class="relationship-cards">
+            <button class="rel-card" onclick="goToSlide(13)">
+              <div class="rel-icon">1:1</div>
+              <h4>One-to-One</h4>
+              <code>hasOne / belongsTo</code>
+              <p>User ↔ Profile</p>
+            </button>
+            <button class="rel-card" onclick="goToSlide(14)">
+              <div class="rel-icon">1:N</div>
+              <h4>One-to-Many</h4>
+              <code>hasMany / belongsTo</code>
+              <p>User → Posts</p>
+            </button>
+            <button class="rel-card" onclick="goToSlide(15)">
+              <div class="rel-icon">N:M</div>
+              <h4>Many-to-Many</h4>
+              <code>belongsToMany</code>
+              <p>Users ↔ Roles</p>
+            </button>
+            <button class="rel-card" onclick="goToSlide(16)">
+              <div class="rel-icon">🔀</div>
+              <h4>Polymorphic</h4>
+              <code>morphTo / morphMany</code>
+              <p>Comments → Posts/Videos</p>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 16: One-to-One -->
+      <section class="slide" data-slide="16">
+        <div class="slide-content">
+          <h2>1:1 One-to-One Relationship</h2>
+          <div class="two-columns">
+            <div class="column">
+              <div class="er-diagram">
+                <div class="er-table">
+                  <div class="er-header">users</div>
+                  <div class="er-row pk">id (PK)</div>
+                  <div class="er-row">email</div>
+                  <div class="er-row">password</div>
+                </div>
+                <div class="er-relation">──────1:1──────</div>
+                <div class="er-table">
+                  <div class="er-header">profiles</div>
+                  <div class="er-row pk">id (PK)</div>
+                  <div class="er-row fk">user_id (FK, UK)</div>
+                  <div class="er-row">avatar</div>
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <pre><code class="language-php">// User Model
+public function profile(): HasOne
+{
+    return $this->hasOne(Profile::class);
+}
+
+// Profile Model
+public function user(): BelongsTo
+{
+    return $this->belongsTo(User::class);
+}
+
+// Sử dụng
+$user->profile;
+$profile->user;</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 17: One-to-Many -->
+      <section class="slide" data-slide="17">
+        <div class="slide-content">
+          <h2>1:N One-to-Many Relationship</h2>
+          <div class="two-columns">
+            <div class="column">
+              <div class="er-diagram">
+                <div class="er-table">
+                  <div class="er-header">users</div>
+                  <div class="er-row pk">id (PK)</div>
+                  <div class="er-row">name</div>
+                </div>
+                <div class="er-relation">──────1:N──────</div>
+                <div class="er-table">
+                  <div class="er-header">posts</div>
+                  <div class="er-row pk">id (PK)</div>
+                  <div class="er-row fk">user_id (FK)</div>
+                  <div class="er-row">title</div>
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <pre><code class="language-php">// User Model
+public function posts(): HasMany
+{
+    return $this->hasMany(Post::class);
+}
+
+// Post Model  
+public function user(): BelongsTo
+{
+    return $this->belongsTo(User::class);
+}
+
+// Sử dụng
+$user->posts;              // Collection
+$user->posts()->create([...]);</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 18: Many-to-Many -->
+      <section class="slide" data-slide="18">
+        <div class="slide-content">
+          <h2>N:M Many-to-Many Relationship</h2>
+          <div class="pivot-diagram">
+            <div class="er-table">
+              <div class="er-header">users</div>
+              <div class="er-row pk">id</div>
+              <div class="er-row">name</div>
+            </div>
+            <div class="pivot-arrows">
+              <span>←</span>
+              <div class="er-table pivot">
+                <div class="er-header">role_user</div>
+                <div class="er-row fk">user_id</div>
+                <div class="er-row fk">role_id</div>
+                <div class="er-row">expires_at</div>
+              </div>
+              <span>→</span>
+            </div>
+            <div class="er-table">
+              <div class="er-header">roles</div>
+              <div class="er-row pk">id</div>
+              <div class="er-row">name</div>
+            </div>
+          </div>
+          <pre><code class="language-php">// Các phương thức pivot
+$user->roles()->attach($roleId);           // Gắn
+$user->roles()->detach($roleId);           // Gỡ
+$user->roles()->sync([1, 2, 3]);           // Đồng bộ
+$user->roles()->toggle([1, 2]);            // Toggle</code></pre>
+        </div>
+      </section>
+
+      <!-- Slide 19: Polymorphic -->
+      <section class="slide" data-slide="19">
+        <div class="slide-content">
+          <h2>🔀 Polymorphic Relationships</h2>
+          <p class="slide-description">
+            Một model có thể thuộc về nhiều loại model khác nhau thông qua một
+            bảng duy nhất
+          </p>
+          <div class="two-columns">
+            <div class="column">
+              <h4>📋 Các loại Polymorphic</h4>
+              <div class="poly-types">
+                <div class="poly-type">
+                  <span class="poly-type-name">morphOne / morphTo</span>
+                  <span class="poly-type-desc"
+                    >1 parent → 1 child (VD: User → Image)</span
+                  >
+                </div>
+                <div class="poly-type">
+                  <span class="poly-type-name">morphMany / morphTo</span>
+                  <span class="poly-type-desc"
+                    >1 parent → N children (VD: Post → Comments)</span
+                  >
+                </div>
+                <div class="poly-type">
+                  <span class="poly-type-name"
+                    >morphToMany / morphedByMany</span
+                  >
+                  <span class="poly-type-desc"
+                    >N:M qua pivot (VD: Posts ↔ Tags)</span
+                  >
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <h4>🗃️ Cấu trúc bảng</h4>
+              <div class="poly-table-structure">
+                <table class="mini-table poly-table">
+                  <tr>
+                    <th colspan="3">comments</th>
+                  </tr>
+                  <tr>
+                    <td>id</td>
+                    <td>commentable_<strong>type</strong></td>
+                    <td>commentable_<strong>id</strong></td>
+                  </tr>
+                  <tr class="example-row">
+                    <td>1</td>
+                    <td>App\Models\Post</td>
+                    <td>5</td>
+                  </tr>
+                  <tr class="example-row">
+                    <td>2</td>
+                    <td>App\Models\Video</td>
+                    <td>3</td>
+                  </tr>
+                </table>
+                <div class="poly-note">
+                  💡 <code>morphs('commentable')</code> tự tạo 2 cột này
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 20: Polymorphic Example -->
+      <section class="slide" data-slide="20">
+        <div class="slide-content">
+          <h2>🔀 Ví Dụ: Hệ Thống Comments Đa Năng</h2>
+          <p class="slide-description">
+            Một bảng comments phục vụ cho Posts, Videos, và Products
+          </p>
+          <div class="poly-example-diagram">
+            <div class="poly-parents">
+              <div class="poly-parent-box post">
+                <span class="poly-icon">📝</span>
+                <span>Post</span>
+              </div>
+              <div class="poly-parent-box video">
+                <span class="poly-icon">🎬</span>
+                <span>Video</span>
+              </div>
+              <div class="poly-parent-box product">
+                <span class="poly-icon">🛍️</span>
+                <span>Product</span>
+              </div>
+            </div>
+            <div class="poly-arrows">
+              <span>↘</span>
+              <span>↓</span>
+              <span>↙</span>
+            </div>
+            <div class="poly-child-box">
+              <span class="poly-icon">💬</span>
+              <span>Comment</span>
+              <span class="poly-relation">morphTo()</span>
+            </div>
+          </div>
+          <div class="two-columns poly-code-columns">
+            <div class="column">
+              <pre><code class="language-php">// Comment Model
+public function commentable(): MorphTo
+{
+    return $this->morphTo();
+}
+
+// Migration
+$table->morphs('commentable');
+// → commentable_type + commentable_id</code></pre>
+            </div>
+            <div class="column">
+              <pre><code class="language-php">// Post/Video/Product Model
+public function comments(): MorphMany
+{
+    return $this->morphMany(Comment::class, 
+        'commentable');
+}
+
+// Sử dụng
+$post->comments;
+$video->comments()->create([...]);</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 21: Has Many Through -->
+      <section class="slide" data-slide="21">
+        <div class="slide-content">
+          <h2>🔗 Has Many Through</h2>
+          <p class="slide-description">
+            Truy cập relationship qua bảng trung gian (không cần pivot)
+          </p>
+
+          <div class="hmt-diagram">
+            <div class="hmt-table">
+              <div class="hmt-header">countries</div>
+              <div class="hmt-row">id, name</div>
+            </div>
+            <div class="hmt-arrow">→ hasMany →</div>
+            <div class="hmt-table">
+              <div class="hmt-header">users</div>
+              <div class="hmt-row">id, country_id, name</div>
+            </div>
+            <div class="hmt-arrow">→ hasMany →</div>
+            <div class="hmt-table">
+              <div class="hmt-header">posts</div>
+              <div class="hmt-row">id, user_id, title</div>
+            </div>
+          </div>
+
+          <pre><code class="language-php">// Country Model
+public function posts(): HasManyThrough
+{
+    return $this->hasManyThrough(Post::class, User::class);
+}
+
+// Sử dụng: Lấy tất cả posts của một country
+$country->posts; // Bỏ qua bảng users!</code></pre>
+        </div>
+      </section>
+
+      <!-- Slide 22: Phần 5 Intro -->
+      <section class="slide" data-slide="22">
+        <div class="slide-content">
+          <div class="section-badge">Phần 5</div>
+          <h2>⚡ Query Optimization</h2>
+          <p class="slide-description">Tối ưu hóa hiệu suất database queries</p>
+          <div class="section-preview">
+            <div class="preview-item">
+              <span class="preview-icon">🔄</span>
+              <span>N+1 Problem & Eager Loading</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-icon">📦</span>
+              <span>Select Specific Columns</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-icon">📊</span>
+              <span>Chunk Large Data</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-icon">💾</span>
+              <span>Cache Queries</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-icon">🗂️</span>
+              <span>Indexing Strategies</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 23: N+1 Problem -->
+      <section class="slide" data-slide="23">
+        <div class="slide-content">
+          <h2>🔄 N+1 Problem → Eager Loading</h2>
+          <div class="comparison">
+            <div class="bad-example">
+              <h4>❌ N+1 Problem</h4>
+              <pre><code class="language-php">$posts = Post::all();
+foreach ($posts as $post) {
+    echo $post->author->name;
+    // Query cho MỖI post!
+}</code></pre>
+              <p class="query-count">📊 11 queries cho 10 posts</p>
+            </div>
+            <div class="good-example">
+              <h4>✅ Eager Loading</h4>
+              <pre><code class="language-php">$posts = Post::with('author')->get();
+foreach ($posts as $post) {
+    echo $post->author->name;
+    // Không query thêm!
+}</code></pre>
+              <p class="query-count">📊 Chỉ 2 queries!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 22: Select Specific Columns -->
+      <section class="slide" data-slide="22">
+        <div class="slide-content">
+          <h2>📦 Select Specific Columns</h2>
+          <p class="slide-description">
+            Chỉ lấy những cột cần thiết thay vì SELECT *
+          </p>
+          <div class="comparison">
+            <div class="bad-example">
+              <h4>❌ Lấy tất cả</h4>
+              <pre><code class="language-php">// SELECT * FROM users
+$users = User::all();
+// Tốn bandwidth + memory</code></pre>
+            </div>
+            <div class="good-example">
+              <h4>✅ Chỉ lấy cần thiết</h4>
+              <pre><code class="language-php">// SELECT id, name FROM users
+$users = User::select('id', 'name')->get();
+
+// Với relationship
+User::with('posts:id,title,user_id');</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 23: Chunk Large Data -->
+      <section class="slide" data-slide="23">
+        <div class="slide-content">
+          <h2>📊 Chunk Large Data</h2>
+          <p class="slide-description">
+            Xử lý dữ liệu lớn mà không tốn hết RAM
+          </p>
+          <div class="comparison">
+            <div class="bad-example">
+              <h4>❌ Load tất cả vào RAM</h4>
+              <pre><code class="language-php">// 1 triệu records → Out of memory!
+User::all()->each(function ($user) {
+    $user->sendEmail();
+});</code></pre>
+            </div>
+            <div class="good-example">
+              <h4>✅ Chunk từng phần</h4>
+              <pre><code class="language-php">// Xử lý 100 records mỗi lần
+User::chunk(100, function ($users) {
+    foreach ($users as $user) {
+        $user->sendEmail();
+    }
+});</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 24: Cache Queries -->
+      <section class="slide" data-slide="24">
+        <div class="slide-content">
+          <h2>💾 Cache Queries</h2>
+          <p class="slide-description">
+            Tránh query lặp lại với dữ liệu ít thay đổi
+          </p>
+          <div class="comparison">
+            <div class="bad-example">
+              <h4>❌ Query mỗi request</h4>
+              <pre><code class="language-php">// Mỗi request đều query
+$settings = Setting::all();
+$categories = Category::all();</code></pre>
+            </div>
+            <div class="good-example">
+              <h4>✅ Cache kết quả</h4>
+              <pre><code class="language-php">$settings = Cache::remember('settings', 3600, 
+    fn() => Setting::all()
+);
+
+// Hoặc với tags
+Cache::tags(['settings'])->remember(...);</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide: What is Index -->
+      <section class="slide" data-slide="25">
+        <div class="slide-content">
+          <h2>🔍 Index Là Gì?</h2>
+          <p class="slide-description">
+            Index là cấu trúc dữ liệu giúp database tìm kiếm nhanh hơn, giống
+            như mục lục sách
+          </p>
+          <div class="two-columns">
+            <div class="column">
+              <h4>📖 Ví dụ thực tế</h4>
+              <div class="index-analogy">
+                <div class="analogy-item">
+                  <span class="analogy-icon">📚</span>
+                  <div class="analogy-content">
+                    <strong>Không có Index</strong>
+                    <span>Đọc từng trang để tìm từ khóa → Chậm!</span>
+                  </div>
+                </div>
+                <div class="analogy-item success">
+                  <span class="analogy-icon">📑</span>
+                  <div class="analogy-content">
+                    <strong>Có Index</strong>
+                    <span>Tra mục lục → đến thẳng trang cần → Nhanh!</span>
+                  </div>
+                </div>
+              </div>
+              <div class="index-speed-compare">
+                <div class="speed-item slow">
+                  <span class="speed-label">Full Table Scan</span>
+                  <div class="speed-bar">
+                    <div class="speed-fill" style="width: 100%"></div>
+                  </div>
+                  <span class="speed-time">~500ms</span>
+                </div>
+                <div class="speed-item fast">
+                  <span class="speed-label">Index Lookup</span>
+                  <div class="speed-bar">
+                    <div class="speed-fill" style="width: 5%"></div>
+                  </div>
+                  <span class="speed-time">~5ms</span>
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <h4>🌳 Cấu trúc B+Tree (MySQL/InnoDB)</h4>
+              <div class="bplus-diagram">
+                <div class="bplus-level root">
+                  <div class="bplus-node internal">[30 | 60]</div>
+                </div>
+                <div class="bplus-arrows">↙ ↓ ↘</div>
+                <div class="bplus-level internal-level">
+                  <div class="bplus-node internal">[10|20]</div>
+                  <div class="bplus-node internal">[40|50]</div>
+                  <div class="bplus-node internal">[70|80]</div>
+                </div>
+                <div class="bplus-arrows">↓ ↓ ↓</div>
+                <div class="bplus-level leaf-level">
+                  <div class="bplus-node leaf">10→20→</div>
+                  <div class="bplus-node leaf">30→40→</div>
+                  <div class="bplus-node leaf highlight">50→60→</div>
+                  <div class="bplus-node leaf">70→80→90</div>
+                </div>
+                <div class="bplus-leaf-link">
+                  ← Linked List giữa Leaf Nodes →
+                </div>
+              </div>
+              <div class="bplus-complexity">
+                <span class="complexity-label">Độ phức tạp:</span>
+                <span class="complexity-value">O(log n)</span>
+                <span class="complexity-example">1M rows ≈ 20 bước</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 26: Index Types -->
+      <section class="slide" data-slide="26">
+        <div class="slide-content">
+          <h2>🗂️ Các Loại Index</h2>
+          <div class="index-types-grid">
+            <div class="index-type-card">
+              <div class="index-type-header primary">PRIMARY</div>
+              <div class="index-type-body">
+                <p>Khóa chính, mỗi bảng chỉ có 1</p>
+                <code>$table->id();</code>
+                <span class="index-note">Tự động tạo, unique + not null</span>
+              </div>
+            </div>
+            <div class="index-type-card">
+              <div class="index-type-header unique">UNIQUE</div>
+              <div class="index-type-body">
+                <p>Giá trị không được trùng lặp</p>
+                <code>$table->unique('email');</code>
+                <span class="index-note">Cho email, username, slug...</span>
+              </div>
+            </div>
+            <div class="index-type-card">
+              <div class="index-type-header composite">COMPOSITE</div>
+              <div class="index-type-body">
+                <p>Index nhiều cột cùng lúc</p>
+                <code>$table->index(['status', 'date']);</code>
+                <span class="index-note">Thứ tự cột quan trọng!</span>
+              </div>
+            </div>
+            <div class="index-type-card">
+              <div class="index-type-header fulltext">FULLTEXT</div>
+              <div class="index-type-body">
+                <p>Tìm kiếm text trong nội dung dài</p>
+                <code>$table->fullText('content');</code>
+                <span class="index-note"
+                  >Cho search box, tìm kiếm bài viết</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 26: Indexing Strategies -->
+      <section class="slide" data-slide="26">
+        <div class="slide-content">
+          <h2>📊 Indexing Strategies</h2>
+          <table class="styled-table index-table">
+            <thead>
+              <tr>
+                <th class="green-header">✅ Nên Index</th>
+                <th class="red-header">❌ Không Nên Index</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Cột trong <code>WHERE</code> clause</td>
+                <td>Cột hiếm khi query</td>
+              </tr>
+              <tr>
+                <td>Cột trong <code>JOIN</code></td>
+                <td>Bảng nhỏ (&lt; 1000 rows)</td>
+              </tr>
+              <tr>
+                <td>Cột trong <code>ORDER BY</code></td>
+                <td>Cột có nhiều <code>NULL</code></td>
+              </tr>
+              <tr>
+                <td>Foreign Keys</td>
+                <td>Cột thường xuyên update</td>
+              </tr>
+              <tr>
+                <td>Cột có cardinality cao</td>
+                <td>Boolean columns</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tip-box">
+            💡 <strong>Lưu ý:</strong> Dùng <code>EXPLAIN</code> để phân tích
+            query performance!
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 27: Transactions -->
+      <section class="slide" data-slide="27">
+        <div class="slide-content">
+          <h2>🔄 Database Transactions</h2>
+          <div class="two-columns">
+            <div class="column">
+              <div class="trans-methods">
+                <div class="trans-method">
+                  <h4>📦 Closure (Auto)</h4>
+                  <pre><code class="language-php">DB::transaction(function () {
+    User::create([...]);
+    Profile::create([...]);
+}); // Auto commit/rollback</code></pre>
+                </div>
+                <div class="trans-method">
+                  <h4>🎛️ Manual Control</h4>
+                  <pre><code class="language-php">DB::beginTransaction();
+try {
+    // operations...
+    DB::commit();
+} catch (\Exception $e) {
+    DB::rollBack();
+}</code></pre>
+                </div>
+              </div>
+            </div>
+            <div class="column">
+              <div class="rule-box">
+                <h4>⚠️ Khi nào dùng?</h4>
+                <ul>
+                  <li>Tạo nhiều records liên quan</li>
+                  <li>Chuyển tiền, thay đổi số dư</li>
+                  <li>Cập nhật dữ liệu quan trọng</li>
+                  <li>Import/Export batch data</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 28: Soft Deletes -->
+      <section class="slide" data-slide="28">
+        <div class="slide-content">
+          <h2>🗑️ Soft Deletes</h2>
+          <p class="slide-description">
+            Đánh dấu "đã xóa" thay vì xóa thật - Dữ liệu vẫn còn trong DB
+          </p>
+
+          <div class="soft-delete-grid">
+            <div class="sd-card">
+              <h4>📝 Setup</h4>
+              <pre><code class="language-php">// Migration
+$table->softDeletes();
+
+// Model
+use SoftDeletes;</code></pre>
+            </div>
+            <div class="sd-card">
+              <h4>🔍 Query</h4>
+              <pre><code class="language-php">User::all();          // Không có deleted
+User::withTrashed();  // Tất cả
+User::onlyTrashed();  // Chỉ deleted</code></pre>
+            </div>
+            <div class="sd-card">
+              <h4>♻️ Restore</h4>
+              <pre><code class="language-php">$user->restore();
+// deleted_at = NULL</code></pre>
+            </div>
+            <div class="sd-card">
+              <h4>💀 Force Delete</h4>
+              <pre><code class="language-php">$user->forceDelete();
+// Xóa vĩnh viễn!</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 32: Phần 6 Intro -->
+      <section class="slide" data-slide="32">
+        <div class="slide-content">
+          <div class="section-badge">Phần 6</div>
+          <h2>✨ Best Practices & Patterns</h2>
+          <p class="slide-description">Các quy tắc và mẫu thiết kế tốt nhất</p>
+          <div class="section-preview">
+            <div class="preview-item">
+              <span class="preview-icon">✅</span>
+              <span>Best Practices</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-icon">⚠️</span>
+              <span>Anti-patterns Cần Tránh</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 33: Best Practices -->
+      <section class="slide" data-slide="33">
+        <div class="slide-content">
+          <h2>✨ Best Practices</h2>
+          <div class="best-practices-grid">
+            <div class="bp-item">
+              <span class="bp-icon">🔗</span>
+              <span>Luôn dùng Foreign Key constraints</span>
+            </div>
+            <div class="bp-item">
+              <span class="bp-icon">📊</span>
+              <span>Index các cột trong WHERE, JOIN, ORDER BY</span>
+            </div>
+            <div class="bp-item">
+              <span class="bp-icon">🔄</span>
+              <span>Sử dụng Eager Loading tránh N+1</span>
+            </div>
+            <div class="bp-item">
+              <span class="bp-icon">💾</span>
+              <span>Dùng Transactions cho data integrity</span>
+            </div>
+            <div class="bp-item">
+              <span class="bp-icon">🗑️</span>
+              <span>Soft Deletes cho dữ liệu quan trọng</span>
+            </div>
+            <div class="bp-item">
+              <span class="bp-icon">📝</span>
+              <span>Tuân thủ naming conventions</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 30: Anti-patterns -->
+      <section class="slide" data-slide="30">
+        <div class="slide-content">
+          <h2>⚠️ Anti-patterns Cần Tránh</h2>
+          <div class="anti-patterns">
+            <div class="anti-item">
+              <code class="bad"
+                >$table->string('tags'); // "php,laravel,vue"</code
+              >
+              <span class="fix">→ Dùng pivot table</span>
+            </div>
+            <div class="anti-item">
+              <code class="bad">$table->text('phone');</code>
+              <span class="fix"
+                >→ <code>$table->string('phone', 20);</code></span
+              >
+            </div>
+            <div class="anti-item">
+              <code class="bad">$table->unsignedBigInteger('user_id');</code>
+              <span class="fix"
+                >→
+                <code>$table->foreignId('user_id')->constrained();</code></span
+              >
+            </div>
+            <div class="anti-item">
+              <code class="bad"
+                >DB::select('SELECT * FROM users WHERE id = ?', [$id]);</code
+              >
+              <span class="fix">→ <code>User::find($id);</code></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 31: Summary -->
+      <section class="slide" data-slide="31">
+        <div class="slide-content">
+          <h2>📋 Tổng Kết</h2>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span class="summary-icon">🎯</span>
+              <div>
+                <strong>Thiết kế Database</strong>
+                <span>ACID, Normalization (1NF→3NF)</span>
+              </div>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">🔧</span>
+              <div>
+                <strong>Laravel Tools</strong>
+                <span>Migrations, Eloquent, Foreign Keys</span>
+              </div>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">🔗</span>
+              <div>
+                <strong>Relationships</strong>
+                <span>1:1, 1:N, N:M, Polymorphic, Has Many Through</span>
+              </div>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">⚡</span>
+              <div>
+                <strong>Performance</strong>
+                <span>Eager Loading, Indexing, Caching</span>
+              </div>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">🔒</span>
+              <div>
+                <strong>Data Integrity</strong>
+                <span>Transactions, Soft Deletes, Constraints</span>
+              </div>
+            </div>
+            <div class="summary-item">
+              <span class="summary-icon">✨</span>
+              <div>
+                <strong>Best Practices</strong>
+                <span>Naming conventions, Anti-patterns</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 32: Thank You -->
+      <section class="slide" data-slide="32">
+        <div class="slide-content title-slide">
+          <h1>🎉 Cảm Ơn!</h1>
+          <p class="subtitle">Câu hỏi & Thảo luận</p>
+          <div class="resources">
+            <h4>📚 Tài liệu tham khảo:</h4>
+            <ul>
+              <li>
+                <a href="https://laravel.com/docs/eloquent" target="_blank"
+                  >Laravel Eloquent Documentation</a
+                >
+              </li>
+              <li>
+                <a href="https://laravel.com/docs/migrations" target="_blank"
+                  >Laravel Database Migrations</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="end-nav">
+            <button onclick="goToSlide(1)" class="btn-restart">
+              ⟲ Bắt đầu lại
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Navigation -->
+      <nav class="slide-nav">
+        <button id="prevBtn" onclick="prevSlide()">←</button>
+        <span id="slideCounter">1 / 21</span>
+        <button id="nextBtn" onclick="nextSlide()">→</button>
+        <button
+          id="fullscreenBtn"
+          onclick="toggleFullscreen()"
+          title="Fullscreen (F)"
+        >
+          ⤢
+        </button>
+      </nav>
+
+      <!-- Slide Thumbnails -->
+      <div class="thumbnails" id="thumbnails">
+        <button class="thumb-toggle" onclick="toggleThumbnails()">☰</button>
+        <div class="thumb-list" id="thumbList"></div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="presentation.js"></script>
+  </body>
+</html>
